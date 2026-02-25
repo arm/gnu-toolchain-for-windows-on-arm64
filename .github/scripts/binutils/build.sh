@@ -25,13 +25,24 @@ if [[ "$RUN_CONFIG" = 1 ]] || [[ ! -f "$BINUTILS_BUILD_PATH/Makefile" ]]; then
        TARGET_OPTIONS="$TARGET_OPTIONS \
             --disable-nls"
 
+        case "$BUILD" in
+            *apple*)
+                CXXFLAGS="$CXXFLAGS \
+                    -Wno-error=deprecated-declarations \
+                    -Wno-error=unguarded-availability-new"
+                ;;
+        esac
+
         case "$HOST" in
             *mingw32*)
                 TARGET_OPTIONS="$TARGET_OPTIONS \
                     --disable-gdb \
                     --without-zstd"
 
-                CFLAGS="$CFLAGS -I$INSTALL_PATH/zlib/$TARGET/include"
+                CFLAGS="$CFLAGS \
+                    -I$INSTALL_PATH/zlib/$TARGET/include \
+                    -Wno-error=unused-variable"
+
                 LDFLAGS="$LDFLAGS $INSTALL_PATH/zlib/$TARGET/lib/libz-static.a"
                 ;;
             *)
@@ -60,7 +71,6 @@ if [[ "$RUN_CONFIG" = 1 ]] || [[ ! -f "$BINUTILS_BUILD_PATH/Makefile" ]]; then
                 TARGET_OPTIONS="$TARGET_OPTIONS \
                     --enable-lto \
                     --enable-64-bit-bfd \
-                    --disable-werror \
                     --with-libiconv-prefix=$TOOLCHAIN_PATH"
                 ;;
         esac
