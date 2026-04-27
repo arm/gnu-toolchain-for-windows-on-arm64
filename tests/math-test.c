@@ -5,6 +5,16 @@
 
 #define M_E_LD 2.718281828459045235360287471352662498L
 
+#if defined (TEST_FLOAT128)
+/* Move _Float128 validation under TEST_FLOAT128 and exclude it fully from
+   testing.
+   _Float128 emulation has been disabled in GCC by
+   https://gcc.gnu.org/git/?p=gcc.git;h=b95bfa1.
+
+   The testing might be re-enabled once emulation is supported by
+   aarch64-w64-mingw32.  More context about _Float128 issues before it was
+   disabled is below.  */
+
 // _Float128 is not fully supported yet, for example strfromf128() or Q length specifier in
 // printf() don't work yet. So for now, instead of testing _Float128 in printf_test() like other
 // types, we test some arithmetics and type handling in float_128_test().
@@ -33,13 +43,16 @@ void float_128_test()
     foo(1.2Q);
     bar(1.2Q);
 }
+#endif
 
 void sizeof_test()
 {
     ASSERT_EQ(sizeof(float), 4);
     ASSERT_EQ(sizeof(double), 8);
     ASSERT_EQ(sizeof(long double), 8);
+#if defined (TEST_FLOAT128)
     ASSERT_EQ(sizeof(_Float128), 16);
+#endif
 }
 
 void assert_snprintf(const char* expected, const char* format, ...)
@@ -114,7 +127,9 @@ void printf_test()
 
 TEST(Aarch64MinGW, MathTest)
 {
+#if defined (TEST_FLOAT128)
     float_128_test();
+#endif
     sizeof_test();
     printf_test();
 }
