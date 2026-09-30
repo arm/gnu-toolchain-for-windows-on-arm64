@@ -31,4 +31,12 @@ fi
 
 echo "::group::Build AArch64 tests"
   cmake --build build
+  cp $TOOLCHAIN_PATH/lib/gcc/aarch64-w64-mingw32/$GCC_VERSION/libstdc++-*.dll \
+    $TOOLCHAIN_PATH/lib/gcc/aarch64-w64-mingw32/$GCC_VERSION/libgomp-*.dll \
+    build/bin
+  
+  if [[ "$UPSTREAM_VALIDATION" = 0 ]]; then
+    cp $TOOLCHAIN_PATH/lib/gcc/aarch64-w64-mingw32/libgcc_s_seh-1.dll build/bin
+  fi
+
 echo "::endgroup::"
