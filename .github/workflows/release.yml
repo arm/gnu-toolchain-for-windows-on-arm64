@@ -1,0 +1,206 @@
+name: Release
+
+on:
+  workflow_call:
+
+env:
+  UPSTREAM_VALIDATION: 1
+  INSTALL_PATH: ${{ github.workspace }}/install
+  PACK_TOOLCHAIN: 1
+
+  SOURCE_PATH: ${{ github.workspace }}/code
+  BUILD_PATH: ${{ github.workspace }}/build
+  ARTIFACT_PATH: ${{ github.workspace }}/artifact
+
+jobs:
+  repository-head:
+    runs-on: ubuntu-24.04-arm
+
+    outputs:
+      binutils-head: ${{ steps.get-repository-head.outputs.binutils-head }}
+      gcc-head: ${{ steps.get-repository-head.outputs.gcc-head }}
+      mingw-head: ${{ steps.get-repository-head.outputs.mingw-head }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get Repository HEAD
+        id: get-repository-head
+        run: |
+          .github/scripts/get-repository-head.sh
+
+  build-toolchain:
+    needs: [repository-head]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
+          - host: arm64-apple-darwin
+            runner: macos-latest
+
+    runs-on: ${{ matrix.runner }}
+
+    env:
+      BINUTILS_HEAD: ${{ needs.repository-head.outputs.binutils-head }}
+      GCC_HEAD: ${{ needs.repository-head.outputs.gcc-head }}
+      MINGW_HEAD: ${{ needs.repository-head.outputs.mingw-head }}
+      TOOLCHAIN_ARTIFACT_NAME: aarch64-w64-mingw32-${{ matrix.host }}
+      TOOLCHAIN_PACKAGE_NAME: aarch64-w64-mingw32-${{ matrix.host }}.tar.gz
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Build
+        run: |
+          ./build.sh
+
+      - name: Pack toolchain
+        run: |
+          .github/scripts/toolchain/pack.sh
+
+      - name: Upload toolchain artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TOOLCHAIN_ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}/${{ env.TOOLCHAIN_PACKAGE_NAME }}
+          retention-days: 3
+
+  build-tests:
+    if: ${{ !cancelled() }}
+    needs: [build-toolchain]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
+          - host: arm64-apple-darwin
+            runner: macos-latest
+
+    runs-on: ${{ matrix.runner }}
+
+    env:
+      TOOLCHAIN_ARTIFACT_NAME: aarch64-w64-mingw32-${{ matrix.host }}
+      TOOLCHAIN_PACKAGE_NAME: aarch64-w64-mingw32-${{ matrix.host }}.tar.gz
+      TESTS_ARTIFACT_NAME: aarch64-w64-mingw32-${{ matrix.host }}-tests
+      TESTS_PACKAGE_NAME: aarch64-w64-mingw32-${{ matrix.host }}-tests.tar.gz
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}
+
+      - name: Download ${{ env.TOOLCHAIN_PACKAGE_NAME }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TOOLCHAIN_ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+
+      - name: Unpack toolchain
+        run: |
+          .github/scripts/toolchain/unpack.sh
+
+      - name: Build toolchain tests
+        run: |
+          .github/scripts/tests/build.sh
+
+      - name: Pack tests
+        run: |
+          .github/scripts/tests/pack.sh
+
+      - name: Upload ${{ env.TESTS_PACKAGE_NAME }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TESTS_ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}/${{ env.TESTS_PACKAGE_NAME }}
+          retention-days: 3
+
+  execute-tests:
+    if: ${{ !cancelled() }}
+    needs: [build-tests]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: aarch64-unknown-linux-gnu
+          - build: arm64-apple-darwin
+
+    runs-on: windows-11-arm
+
+    env:
+      TESTS_ARTIFACT_NAME: aarch64-w64-mingw32-${{ matrix.build }}-tests
+      TESTS_PACKAGE_NAME: aarch64-w64-mingw32-${{ matrix.build }}-tests.tar.gz
+      TESTS_BUILD: ${{ matrix.build }}
+
+    outputs:
+      aarch64-unknown-linux-gnu: ${{ steps.test-result.outputs.aarch64-unknown-linux-gnu }}
+      arm64-apple-darwin: ${{ steps.test-result.outputs.arm64-apple-darwin }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}
+
+      - name: Download ${{ env.TESTS_PACKAGE_NAME }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.TESTS_ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_PATH }}
+
+      - name: Unpack ${{ env.TOOLCHAIN_NAME }} tests
+        run: |
+          .github/scripts/tests/unpack.ps1
+
+      - name: Execute MinGW tests
+        run: |
+          .github/scripts/tests/execute-tests.ps1
+
+      - name: Publish test results
+        id: test-result
+        shell: bash
+        run: |
+          .github/scripts/tests/test-result.sh
+
+  create-release:
+    if: ${{ !cancelled() }}
+    needs: [repository-head, execute-tests]
+    runs-on: ubuntu-24.04-arm
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BINUTILS_HEAD: ${{ needs.repository-head.outputs.binutils-head }}
+      GCC_HEAD: ${{ needs.repository-head.outputs.gcc-head }}
+      MINGW_HEAD: ${{ needs.repository-head.outputs.mingw-head }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}
+
+      - name: Download aarch64-w64-mingw32-aarch64-unknown-linux-gnu.tar.gz
+        if: needs.execute-tests.outputs.aarch64-unknown-linux-gnu == 'passed'
+        uses: actions/download-artifact@v4
+        with:
+          name: aarch64-w64-mingw32-aarch64-unknown-linux-gnu
+          path: ${{ env.ARTIFACT_PATH }}
+        continue-on-error: true
+
+      - name: Download aarch64-w64-mingw32-arm64-apple-darwin.tar.gz
+        if: always() && needs.execute-tests.outputs.arm64-apple-darwin == 'passed'
+        uses: actions/download-artifact@v4
+        with:
+          name: aarch64-w64-mingw32-arm64-apple-darwin
+          path: ${{ env.ARTIFACT_PATH }}
+        continue-on-error: true
+
+      - name: Create release
+        run: |
+          .github/scripts/create-release.sh
