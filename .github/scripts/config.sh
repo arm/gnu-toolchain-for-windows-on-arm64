@@ -101,8 +101,10 @@ TOOLCHAIN_CCACHE_LIB_DIR=$TOOLCHAIN_PATH/lib/ccache
 
 if [[ -f $SOURCE_PATH/gcc/gcc/BASE-VER ]]; then
     GCC_VERSION=$(cat $SOURCE_PATH/gcc/gcc/BASE-VER)
-else
-    GCC_VERSION="15.0.0"
+elif [[ -d $TOOLCHAIN_PATH/lib/gcc ]]; then
+    GCC_VERSION=$(find $TOOLCHAIN_PATH/lib/gcc -name "libstdc++*.dll")
+    GCC_VERSION=$(dirname "$GCC_VERSION")
+    GCC_VERSION=$(basename "$GCC_VERSION")
 fi
 
 DEBUG=${DEBUG:-0} # Enable debug build.
