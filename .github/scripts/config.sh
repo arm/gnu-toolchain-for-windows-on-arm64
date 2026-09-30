@@ -28,20 +28,17 @@ BUILD=${BUILD:-$SYSTEM_TRIPLE}
 HOST=${HOST:-$SYSTEM_TRIPLE}
 
 # Branches that will be used for build when UPDATE_SOURCES=1.
-BINUTILS_REPO=${BINUTILS_REPO:-eukarpov/binutils-windows-arm64}
-BINUTILS_BRANCH=${BINUTILS_BRANCH:-woarm64}
+BINUTILS_REPO=${BINUTILS_REPO:-git://sourceware.org/git/binutils-gdb.git}
+BINUTILS_BRANCH=${BINUTILS_BRANCH:-master}
 
-GCC_REPO=${GCC_REPO:-eukarpov/gcc-windows-arm64}
-GCC_BRANCH=${GCC_BRANCH:-woarm64}
+GCC_REPO=${GCC_REPO:-git://gcc.gnu.org/git/gcc.git}
+GCC_BRANCH=${GCC_BRANCH:-master}
 
-MINGW_REPO=${MINGW_REPO:-eukarpov/mingw-woarm64}
-MINGW_BRANCH=${MINGW_BRANCH:-woarm64}
+MINGW_REPO=${MINGW_REPO:-https://git.code.sf.net/p/mingw-w64/mingw-w64}
+MINGW_BRANCH=${MINGW_BRANCH:-master}
 
-CYGWIN_REPO=${CYGWIN_REPO:-eukarpov/cygwin-windows-arm64}
-CYGWIN_BRANCH=${CYGWIN_BRANCH:-woarm64}
-
-CYGWIN_PACKAGES_REPO=${CYGWIN_PACKAGES_REPO:-eukarpov/cygwin-packages}
-CYGWIN_PACKAGES_BRANCH=${CYGWIN_PACKAGES_BRANCH:-main}
+CYGWIN_REPO=${CYGWIN_REPO:-git://sourceware.org/git/newlib-cygwin.git}
+CYGWIN_BRANCH=${CYGWIN_BRANCH:-master}
 
 COCOM_REPO=${COCOM_REPO:-git://git.code.sf.net/p/cocom/git}
 COCOM_BRANCH=${COCOM_BRANCH:-master}
