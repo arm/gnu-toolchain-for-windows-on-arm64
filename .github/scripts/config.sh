@@ -121,7 +121,6 @@ RUN_CONFIG=${RUN_CONFIG:-0} # Run configuration step.
 RUN_INSTALL=${RUN_INSTALL:-1} # Run installation step.
 DELETE_BUILD=${DELETE_BUILD:-0} # Delete build folders after successful builds.
 
-PATH="$PATH:$TOOLCHAIN_PATH/bin:$ARTIFACT_PATH/bin"
 if [[ "$CCACHE" = 1 ]]; then
     PATH=$CCACHE_LIB_DIR:$TOOLCHAIN_CCACHE_LIB_DIR:$PATH
     export CCACHE_DIR=$CCACHE_DIR_PATH

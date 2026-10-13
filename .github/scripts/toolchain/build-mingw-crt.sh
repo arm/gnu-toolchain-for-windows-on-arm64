@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source `dirname ${BASH_SOURCE[0]}`/../config.sh
+source $TOOLCHAIN_PATH/toolchain.sh --activate
 
 MINGW_BUILD_PATH=$BUILD_PATH/mingw-crt
 

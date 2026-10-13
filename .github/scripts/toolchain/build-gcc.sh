@@ -153,6 +153,7 @@ if [[ "$RUN_INSTALL" = 1 ]]; then
         if [[ "$DELETE_BUILD" = 1 ]]; then
             rm -rf $GCC_BUILD_PATH
         fi
+        cp $ROOT_PATH/.github/scripts/toolchain/toolchain.sh $TOOLCHAIN_PATH
     echo "::endgroup::"
 fi
 
